@@ -1,88 +1,117 @@
-import math
+import turtle
 import random
+import math
 
-# Simulated annealing in Python
-
-# Cities 10, (X, Y) 0 < X < 100, 0 < Y < 100.
-cities = [(24, 76), (11, 12), (99, 23), (23, 99), (60, 71),
-          (84, 32), (21, 52), (42, 42), (87, 13), (17, 12)]
-
-# Really, the order should be randomised to start off - so this is
-# left as an exercise for the coder.
-
-iterations = 1000
-start_temperature = 800.0
-current_temperature = start_temperature
+number_cities = 100
+tabu_list = []
 
 def main():
-    global current_temperature, cities
+    random.seed(42)
+    citylocations = []
 
-    print(cities)
-    print(objective_function(cities))
+    for i in range(0,number_cities):
+        citylocations.append(
+            (random.randint(-299, 299),
+            random.randint(-299, 299)))
 
-    for i in range(0, iterations):
-        new_cities = city_swap(cities)
+    screen = turtle.Screen()
+    screen.setup(600,600)
 
-        current_objective_score = objective_function(cities)
-        new_objective_score = objective_function(new_cities)
+    tabu_iteration(citylocations)
 
-        if make_swap(current_objective_score, new_objective_score, current_temperature):
-            cities = new_cities
+    screen.exitonclick()
 
-        current_temperature = current_temperature - 1
-        print(cities)
-        print(objective_function(cities))
+def tabu_iteration(citylocations):
+    candidates = create_candidates(citylocations)
+    #best_score = 100000000
+    #best_candidate = number_cities + 1
 
-    """
-    print(cities)
-    o1 = objective_function(cities)
-    print(o1)
-    new_cities = city_swap(cities)
-    print(new_cities)
-    print(cities)
-    o2 = objective_function(new_cities)
-    print(o2)
-    print(make_swap(o1, o2, current_temperature))
-    """
+    scored_candidates = []
 
-def make_swap(original_score, new_score, temperature):
-    random_chance = random.randint(0, start_temperature)
+    scored_candidates = sorted(candidates, key=objective_function)
 
-    swap = True
 
-    if original_score < new_score:
-        swap = False
-        if random_chance < temperature:
-            swap = True
+    for scored_candidate in scored_candidates:
+        if not tabu_check(scored_candidate):
+            usable_candidate = scored_candidate
+            break
 
-    if original_score > new_score:
-        swap = True
-        if random_chance < temperature:
-            swap = False
-        
-    return swap
+    drawpath(usable_candidate)
+    #for i in range(0, number_cities):
+        #scored_candidates.append((objective_function(candidates[i]), candidates[i]))
+        #score = objective_function(candidates[i])
+        #if score < best_score:
+        #    best_score = score
+        #    best_candidate = i
 
-def city_swap(cities_list):
-    citya = random.randrange(0, len(cities_list))
-    cityb = random.randrange(0, len(cities_list))
+    drawpath(citylocations)
 
-    new_cities_list = list(cities_list)
+def tabu_check(candidate):
+    global tabu_list
 
-    new_cities_list[citya], new_cities_list[cityb] = cities_list[cityb], cities_list[citya]
+    match = False
 
-    return new_cities_list
+    for tabu_candidate in tabu_list:
+        if tabu_candidate == candidate:
+           match = True 
+           break
 
-def objective_function(cities_list):
-    cumulative_dist = euclidean_distance(cities_list[0], cities_list[-1])
+    return match
 
-    for i in range(0, len(cities_list) - 1):
-        cumulative_dist = cumulative_dist + euclidean_distance(cities_list[i], cities_list[i+1])
 
-    return cumulative_dist
+def objective_function(candidate):
+    sum = 0
 
-def euclidean_distance(city1, city2):
-    return math.sqrt((city1[0] - city2[0])**2 +
-              (city1[1] - city2[1])**2)
+    for i in range(0, number_cities):
+        if i == number_cities - 1:
+            sum = sum + euclidean_distance(candidate[-1], candidate[0])
+        else:
+            sum = sum + euclidean_distance(candidate[i], candidate[i+1])
+
+    return sum
+
+def euclidean_distance(pointa, pointb):
+    return math.sqrt(
+        math.pow(pointa[0] - pointb[0], 2) + 
+        math.pow(pointa[1] - pointb[1], 2))
+
+def create_candidates(citylocations):
+    candidates = []
+
+    for i in range(0, number_cities):
+
+        candidate = []
+
+        if i == number_cities - 1:
+            candidate.append(citylocations[-1])
+            candidate.extend(citylocations[1:-1])
+            candidate.append(citylocations[0])
+        else:
+            for j in range(0, number_cities):
+                if not j == i and not j == i + 1:
+                    candidate.append(citylocations[j])
+                elif j == i and not i == number_cities - 1:
+                    candidate.append(citylocations[i+1])
+                    candidate.append(citylocations[i])
+
+            if i == number_cities - 1:
+                candidate.append(citylocations[0])
+
+        candidates.append(candidate)
+
+    return candidates
+
+
+def drawpath(cities):
+    turtle.clear()
+    turtle.penup()
+
+    for city in cities:
+        turtle.goto(city)
+        turtle.pendown()
+
+    turtle.goto(cities[0])
+
 
 if __name__ == '__main__':
     main()
