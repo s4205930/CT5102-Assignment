@@ -18,9 +18,9 @@ class Chromosome:
 
 def main():
     global cities, population, df_5k, best_chromo
-    city_num = 100
-    population_size = 50
-    generations = 10000
+    city_num = 25
+    population_size = 10
+    generations = 1000000
     mutation_rate = 0.2
     best_chromo = Chromosome([0], float('inf'), float('inf'), float('inf'))
 
@@ -34,7 +34,7 @@ def main():
         for j in range(0, len(population)):
             fitness_func(population[j])
         population.sort(key = lambda x: x.dist)
-        print(i)
+        #print(i)
 
         if (population[0].dist < best_chromo.dist):
             best_chromo = population[0].duplicate()
