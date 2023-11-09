@@ -17,16 +17,21 @@ class Chromosome:
         return Chromosome(self.order, self.dist, self.fitness, self.norm_fitness)
 
 def main():
-    global cities, population, df_5k, best_chromo
-    city_num = 25
+    global cities, population, df_5k, best_chromo, screen
+    city_num = 15
     population_size = 10
-    generations = 1000000
+    generations = 5000
     mutation_rate = 0.2
     best_chromo = Chromosome([0], float('inf'), float('inf'), float('inf'))
 
     df = pd.read_csv("cities.csv")
     df_5k = df.iloc[:city_num]
     population = init_population(population_size, city_num)
+
+    #TURTLE
+    screen = turtle.Screen()
+    screen.setup(800, 800)
+    
 
 #--------------MAIN-LOOP---------------#
 
@@ -44,8 +49,14 @@ def main():
 
         create_next_generation()
         mutate_generation(mutation_rate)
+    
 
 #--------------FUNCTIONS--------------#
+
+def draw_path(chromo):
+    order = chromo.order
+    for i in range(0, len(order)):
+        pass
 
 def init_population(population_size, city_num):
     population.clear #Ensure population is empty
@@ -116,3 +127,4 @@ def euclid_dist_sqr(a, b):
 
 main()
 print("Best Score: ", best_chromo.dist)
+screen.exitonclick()
