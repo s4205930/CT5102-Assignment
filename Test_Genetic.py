@@ -2,6 +2,9 @@ import pandas as pd
 import random
 import math
 import turtle
+import time
+
+#Distance to beat: 10987144.136907717
 
 cities = []
 population = []
@@ -17,29 +20,33 @@ class Chromosome:
         return Chromosome(self.order, self.dist, self.fitness, self.norm_fitness)
 
 def main():
-    global cities, population, df_5k, best_chromo, screen
-    city_num = 15
-    population_size = 10
-    generations = 5000
+    global cities, population, df_5k, best_chromo, best_from_gen
+    city_num = 500
+    population_size = 5
+    generations = 1000
     mutation_rate = 0.2
     best_chromo = Chromosome([0], float('inf'), float('inf'), float('inf'))
+    #best_from_gen = Chromosome([0], float('inf'), float('inf'), float('inf'))
+    #10904183.941972187 - 100:50 for 5000
+    #10869285.034202613 - 50:100 for 5000
 
     df = pd.read_csv("cities.csv")
     df_5k = df.iloc[:city_num]
     population = init_population(population_size, city_num)
 
     #TURTLE
-    screen = turtle.Screen()
-    screen.setup(800, 800)
+    #screen = turtle.Screen()
+    #screen.setup(800, 800)
     
 
 #--------------MAIN-LOOP---------------#
+    start_time = time.time()
 
     for i in range(0, generations):
         for j in range(0, len(population)):
             fitness_func(population[j])
         population.sort(key = lambda x: x.dist)
-        #print(i)
+        print(population[0].dist, " : ", i)
 
         if (population[0].dist < best_chromo.dist):
             best_chromo = population[0].duplicate()
@@ -50,6 +57,9 @@ def main():
         create_next_generation()
         mutate_generation(mutation_rate)
     
+    end_time = time.time()
+    print(time_convert(end_time - start_time))
+    
 
 #--------------FUNCTIONS--------------#
 
@@ -57,6 +67,13 @@ def draw_path(chromo):
     order = chromo.order
     for i in range(0, len(order)):
         pass
+
+def time_convert(sec):
+  mins = sec // 60
+  sec = sec % 60
+  hours = mins // 60
+  mins = mins % 60
+  print("Time Elapsed = {0}:{1}:{2}".format(int(hours),int(mins),sec))
 
 def init_population(population_size, city_num):
     population.clear #Ensure population is empty
@@ -71,9 +88,9 @@ def fitness_func(chromo):
     cumulative_dist = euclid_dist(chromo.order[len(chromo.order)-1], chromo.order[0])
 
     for i in range(0, len(chromo.order) -1):
-        cumulative_dist = cumulative_dist + euclid_dist(chromo.order[i], chromo.order[i+1])
+        cumulative_dist += euclid_dist(chromo.order[i], chromo.order[i+1])
     chromo.dist = cumulative_dist
-    chromo.fitness = (1 / cumulative_dist)**3
+    chromo.fitness = (1 / cumulative_dist)**10
 
 def generate_norm_fitness():
     total = 0
@@ -104,13 +121,13 @@ def mutate_generation(mutation_rate):
     for i in range(0, len(population)):
         order = population[i].order
         if (random.uniform(0, 1) < mutation_rate):
+
             a = random.randrange(len(order)-1)
             b = random.randrange(len(order)-1)
 
             temp = order[a]
             order[a] = order[b]
             order[b] = temp
-
 
 def get_coords(index):
     return ([df_5k.loc[index, "X"], df_5k.loc[index, "Y"]])
@@ -127,4 +144,4 @@ def euclid_dist_sqr(a, b):
 
 main()
 print("Best Score: ", best_chromo.dist)
-screen.exitonclick()
+#screen.exitonclick()
