@@ -1,7 +1,7 @@
 import pandas as pd
+import numpy as np
 import random
 import math
-import turtle
 import time
 
 #Distance to beat: 10987144.136907717
@@ -20,27 +20,23 @@ class Chromosome:
         return Chromosome(self.order, self.dist, self.fitness, self.norm_fitness)
 
 def main():
-    global cities, population, df_5k, best_chromo, best_from_gen
-    city_num = 500
-    population_size = 5
-    generations = 1000
+    global cities, population, df_5k, best_chromo, look_up
+    city_num = 5000
+    population_size = 10000
+    generations = 20
     mutation_rate = 0.2
+    look_up = np.zeros((city_num, city_num))
     best_chromo = Chromosome([0], float('inf'), float('inf'), float('inf'))
-    #best_from_gen = Chromosome([0], float('inf'), float('inf'), float('inf'))
-    #10904183.941972187 - 100:50 for 5000
-    #10869285.034202613 - 50:100 for 5000
 
     df = pd.read_csv("cities.csv")
     df_5k = df.iloc[:city_num]
     population = init_population(population_size, city_num)
 
-    #TURTLE
-    #screen = turtle.Screen()
-    #screen.setup(800, 800)
     
 
 #--------------MAIN-LOOP---------------#
     start_time = time.time()
+    calculate_look_up(city_num)
 
     for i in range(0, generations):
         for j in range(0, len(population)):
@@ -58,7 +54,7 @@ def main():
         mutate_generation(mutation_rate)
     
     end_time = time.time()
-    print(time_convert(end_time - start_time))
+    print(time_convert(end_time - start_time, "Total Time"))
     
 
 #--------------FUNCTIONS--------------#
@@ -68,12 +64,12 @@ def draw_path(chromo):
     for i in range(0, len(order)):
         pass
 
-def time_convert(sec):
+def time_convert(sec, message):
   mins = sec // 60
   sec = sec % 60
   hours = mins // 60
   mins = mins % 60
-  print("Time Elapsed = {0}:{1}:{2}".format(int(hours),int(mins),sec))
+  print(message, "= {0}:{1}:{2}".format(int(hours),int(mins),sec))
 
 def init_population(population_size, city_num):
     population.clear #Ensure population is empty
@@ -85,12 +81,12 @@ def init_population(population_size, city_num):
     return population
 
 def fitness_func(chromo):
-    cumulative_dist = euclid_dist(chromo.order[len(chromo.order)-1], chromo.order[0])
+    cumulative_dist = look_up[len(chromo.order) -1][chromo.order[0]]
 
-    for i in range(0, len(chromo.order) -1):
-        cumulative_dist += euclid_dist(chromo.order[i], chromo.order[i+1])
+    for i in range (0, len(chromo.order)-1):
+        cumulative_dist += look_up[chromo.order[i]][chromo.order[i+1]]
     chromo.dist = cumulative_dist
-    chromo.fitness = (1 / cumulative_dist)**10
+    chromo.fitness = (1 / cumulative_dist)**4
 
 def generate_norm_fitness():
     total = 0
@@ -121,13 +117,15 @@ def mutate_generation(mutation_rate):
     for i in range(0, len(population)):
         order = population[i].order
         if (random.uniform(0, 1) < mutation_rate):
+            reps = random.randrange(math.floor(len(order)/2))
+            for j in range(0, reps):
 
-            a = random.randrange(len(order)-1)
-            b = random.randrange(len(order)-1)
+                a = random.randrange(len(order)-1)
+                b = random.randrange(len(order)-1)
 
-            temp = order[a]
-            order[a] = order[b]
-            order[b] = temp
+                temp = order[a]
+                order[a] = order[b]
+                order[b] = temp
 
 def get_coords(index):
     return ([df_5k.loc[index, "X"], df_5k.loc[index, "Y"]])
@@ -137,11 +135,19 @@ def euclid_dist(a, b):
     B = get_coords(b)
     return math.sqrt((A[0] - B[0])**2 + (A[1] - B[1])**2)
 
-def euclid_dist_sqr(a, b):
-    A = get_coords(a)
-    B = get_coords(b)
-    return (A[0] - B[0])**2 + (A[1] - B[1])**2
+def calculate_look_up(city_num):
+    global look_up
+    try:
+        df = pd.read_csv('look_up.csv')
+        look_up = df.to_numpy()
+    except:
+        for i in range(0, city_num):
+            print(i)
+            for j in range(0, city_num):
+                look_up[i][j] = euclid_dist(i, j)
+        df = pd.DataFrame(look_up)
+        df.to_csv('look_up.csv', index = False)
+
 
 main()
 print("Best Score: ", best_chromo.dist)
-#screen.exitonclick()
