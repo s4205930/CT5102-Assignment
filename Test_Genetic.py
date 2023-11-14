@@ -22,11 +22,11 @@ class Chromosome:
 def main():
     global cities, population, df_5k, best_chromo, look_up
     city_num = 5000
-    population_size = 10000
-    generations = 20
-    mutation_rate = 0.2
+    population_size = 150
+    generations = 1500
+    mutation_rate = 0.3
     look_up = np.zeros((city_num, city_num))
-    best_chromo = Chromosome([0], float('inf'), float('inf'), float('inf'))
+    best_chromo = Chromosome([0], 100000000, float('inf'), float('inf'))
 
     df = pd.read_csv("cities.csv")
     df_5k = df.iloc[:city_num]
@@ -38,20 +38,23 @@ def main():
     start_time = time.time()
     calculate_look_up(city_num)
 
-    for i in range(0, generations):
+    #for i in range(0, generations):
+    i = 0
+    while(best_chromo.dist >= 10762996):
         for j in range(0, len(population)):
             fitness_func(population[j])
         population.sort(key = lambda x: x.dist)
-        print(population[0].dist, " : ", i)
+        print(math.floor(population[0].dist), " : ", i, " : ", math.floor(best_chromo.dist))
 
         if (population[0].dist < best_chromo.dist):
             best_chromo = population[0].duplicate()
-            print("\n", best_chromo.dist, "\n")
+            print("\n")
 
         generate_norm_fitness()
 
         create_next_generation()
         mutate_generation(mutation_rate)
+        i += 1
     
     end_time = time.time()
     print(time_convert(end_time - start_time, "Total Time"))
