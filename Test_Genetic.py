@@ -3,6 +3,7 @@ import numpy as np
 import random
 import math
 import time
+from numba import jit, cuda
 
 #Distance to beat: 10987144.136907717
 
@@ -21,14 +22,14 @@ class Chromosome:
 
 def main():
     global cities, population, df_5k, best_chromo, look_up
-    city_num = 10
-    population_size = 500
-    generations = 2500
-    mutation_rate = 0.4
+    city_num = 5000
+    population_size = 25
+    generations = 150
+    mutation_rate = 0.3
     look_up = np.zeros((city_num, city_num))
     best_chromo = Chromosome([0], 100000000, float('inf'), float('inf'))
 
-    df = pd.read_csv("cities.csv")
+    df = pd.read_csv("CT5102-Assignment\cities.csv")
     df_5k = df.iloc[:city_num]
     population = init_population(population_size, city_num)
 
@@ -40,9 +41,11 @@ def main():
 
     #for i in range(0, generations):
     i = 0
-    while(best_chromo.dist >= 10950):
+    while(best_chromo.dist > 10000000):
+        start_fit = time.time()
         for j in range(0, len(population)):
-            fitness_func(population[j])
+            fitness_func_precalc(population[j])
+        time_convert(time.time()-start_fit, "Fitness")
         population.sort(key = lambda x: x.dist)
         print(math.floor(population[0].dist), " : ", i, " : ", math.floor(best_chromo.dist))
 
@@ -52,7 +55,7 @@ def main():
 
         generate_norm_fitness()
 
-        create_next_generation()
+        create_next_generation_roulette()
         mutate_generation(mutation_rate)
         i += 1
     
@@ -62,17 +65,12 @@ def main():
 
 #--------------FUNCTIONS--------------#
 
-def draw_path(chromo):
-    order = chromo.order
-    for i in range(0, len(order)):
-        pass
-
 def time_convert(sec, message):
   mins = sec // 60
   sec = sec % 60
   hours = mins // 60
   mins = mins % 60
-  print(message, "= {0}:{1}:{2}".format(int(hours),int(mins),sec))
+  #print(message, "= {0}:{1}:{2}".format(int(hours),int(mins),sec))
 
 def init_population(population_size, city_num):
     population.clear #Ensure population is empty
@@ -83,11 +81,18 @@ def init_population(population_size, city_num):
         population.append(chromo)
     return population
 
-def fitness_func(chromo):
+def fitness_func_precalc(chromo):
     cumulative_dist = look_up[len(chromo.order) -1][chromo.order[0]]
 
     for i in range (0, len(chromo.order)-1):
         cumulative_dist += look_up[chromo.order[i]][chromo.order[i+1]]
+    chromo.dist = cumulative_dist
+    chromo.fitness = (1 / cumulative_dist)**4
+
+def fitness_func(chromo):
+    cumulative_dist = euclid_dist(chromo.order[len(chromo.order)-1], chromo.order[0])
+    for i in range(0, len(chromo.order) -1):
+        cumulative_dist += euclid_dist(chromo.order[i], chromo.order[i+1])
     chromo.dist = cumulative_dist
     chromo.fitness = (1 / cumulative_dist)**4
 
@@ -99,7 +104,7 @@ def generate_norm_fitness():
         population[i].norm_fitness = population[i].fitness / total
 
         
-def create_next_generation():
+def create_next_generation_roulette():#tournament & numpy fitness
     global population
     new_population = []
 
@@ -115,12 +120,11 @@ def create_next_generation():
 
     population = new_population
 
-
 def mutate_generation(mutation_rate):
     for i in range(0, len(population)):
-        order = population[i].order
         if (random.uniform(0, 1) < mutation_rate):
-            reps = random.randrange(math.floor(len(order)/4))
+            order = population[i].order
+            reps = random.randrange(math.floor(5))
             for j in range(0, reps):
 
                 a = random.randrange(len(order)-1)
