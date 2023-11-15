@@ -3,7 +3,7 @@ import numpy as np
 import random
 import math
 import time
-from numba import jit, cuda
+#from numba import jit, cuda
 
 #Distance to beat: 10987144.136907717
 
@@ -73,9 +73,10 @@ def time_convert(sec, message):
   print(message, "= {0}:{1}:{2}".format(int(hours),int(mins),sec))
 
 def init_population(population_size, city_num):
-    population = np.array(population_size) #Ensure population is empty
+    global population
+    population = np.empty(population_size, dtype=Chromosome)
     for i in range(0, population_size):
-        order = list(range(0, city_num))
+        order = np.arange(0, city_num)
         random.shuffle(order)
         chromo = Chromosome(order, float('inf'), float('inf'), 0)
         population[i] = chromo
