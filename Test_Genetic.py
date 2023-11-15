@@ -21,10 +21,10 @@ class Chromosome:
 
 def main():
     global cities, population, df_5k, best_chromo, look_up
-    city_num = 5000
-    population_size = 150
-    generations = 1500
-    mutation_rate = 0.3
+    city_num = 10
+    population_size = 500
+    generations = 2500
+    mutation_rate = 0.4
     look_up = np.zeros((city_num, city_num))
     best_chromo = Chromosome([0], 100000000, float('inf'), float('inf'))
 
@@ -40,7 +40,7 @@ def main():
 
     #for i in range(0, generations):
     i = 0
-    while(best_chromo.dist >= 10762996):
+    while(best_chromo.dist >= 10950):
         for j in range(0, len(population)):
             fitness_func(population[j])
         population.sort(key = lambda x: x.dist)
@@ -120,7 +120,7 @@ def mutate_generation(mutation_rate):
     for i in range(0, len(population)):
         order = population[i].order
         if (random.uniform(0, 1) < mutation_rate):
-            reps = random.randrange(math.floor(len(order)/2))
+            reps = random.randrange(math.floor(len(order)/4))
             for j in range(0, reps):
 
                 a = random.randrange(len(order)-1)
