@@ -7,8 +7,8 @@ from numba import jit, cuda
 
 #Distance to beat: 10987144.136907717
 
-cities = []
-population = []
+cities = np.array
+population = np.array
 
 class Chromosome:
     def __init__(self, order, dist, fitness, norm_fitness):
@@ -29,7 +29,7 @@ def main():
     look_up = np.zeros((city_num, city_num))
     best_chromo = Chromosome([0], 100000000, float('inf'), float('inf'))
 
-    df = pd.read_csv("CT5102-Assignment\cities.csv")
+    df = pd.read_csv("cities.csv")
     df_5k = df.iloc[:city_num]
     population = init_population(population_size, city_num)
 
@@ -44,7 +44,7 @@ def main():
     while(best_chromo.dist > 10000000):
         start_fit = time.time()
         for j in range(0, len(population)):
-            fitness_func_precalc(population[j])
+            fitness_func(population[j])
         time_convert(time.time()-start_fit, "Fitness")
         population.sort(key = lambda x: x.dist)
         print(math.floor(population[0].dist), " : ", i, " : ", math.floor(best_chromo.dist))
@@ -70,15 +70,15 @@ def time_convert(sec, message):
   sec = sec % 60
   hours = mins // 60
   mins = mins % 60
-  #print(message, "= {0}:{1}:{2}".format(int(hours),int(mins),sec))
+  print(message, "= {0}:{1}:{2}".format(int(hours),int(mins),sec))
 
 def init_population(population_size, city_num):
-    population.clear #Ensure population is empty
+    population = np.array(population_size) #Ensure population is empty
     for i in range(0, population_size):
         order = list(range(0, city_num))
         random.shuffle(order)
         chromo = Chromosome(order, float('inf'), float('inf'), 0)
-        population.append(chromo)
+        population[i] = chromo
     return population
 
 def fitness_func_precalc(chromo):
