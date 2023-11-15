@@ -24,7 +24,7 @@ def main():
     global cities, population, df_5k, best_chromo, look_up
     city_num = 5000
     population_size = 25
-    generations = 150
+    generations = 5
     mutation_rate = 0.3
     look_up = np.zeros((city_num, city_num))
     best_chromo = Chromosome([0], 100000000, float('inf'), float('inf'))
@@ -39,14 +39,15 @@ def main():
     start_time = time.time()
     calculate_look_up(city_num)
 
-    #for i in range(0, generations):
-    i = 0
-    while(best_chromo.dist > 10000000):
+    for i in range(0, generations):
+    #i = 0
+    #while(best_chromo.dist > 10000000):
         start_fit = time.time()
+        best_gen_index = 0
         for j in range(0, len(population)):
-            fitness_func(population[j])
+            best_gen_index = fitness_func(population[j], best_gen_index)
         time_convert(time.time()-start_fit, "Fitness")
-        population.sort(key = lambda x: x.dist)
+        #population.sort()
         print(math.floor(population[0].dist), " : ", i, " : ", math.floor(best_chromo.dist))
 
         if (population[0].dist < best_chromo.dist):
@@ -90,12 +91,12 @@ def fitness_func_precalc(chromo):
     chromo.dist = cumulative_dist
     chromo.fitness = (1 / cumulative_dist)**4
 
-def fitness_func(chromo):
+def fitness_func(chromo, index):
     cumulative_dist = euclid_dist(chromo.order[len(chromo.order)-1], chromo.order[0])
     for i in range(0, len(chromo.order) -1):
         cumulative_dist += euclid_dist(chromo.order[i], chromo.order[i+1])
     chromo.dist = cumulative_dist
-    chromo.fitness = (1 / cumulative_dist)**4
+    chromo.fitness = (1 / cumulative_dist)
 
 def generate_norm_fitness():
     total = 0
