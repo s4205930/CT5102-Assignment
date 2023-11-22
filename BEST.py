@@ -16,10 +16,12 @@ class Chromosome:
         return Chromosome(self.order.copy(), self.dist, self.fitness, self.norm_fitness)
 
 def main():
-    city_num = 10
-    pop_size = 20
-    generations = 5000
-    mutation_rate = 0.1
+    city_num = 50
+    pop_size = 100
+    generations = 1000
+    tournament_size = 30
+    mutation_rate = 0.6
+    cross_rate = 0.4
     best_chromo = Chromosome([0], 20000000, float('inf'), float('inf'))
 
     df = pd.read_csv("cities.csv")
@@ -27,7 +29,7 @@ def main():
     population = init_population(pop_size, city_num)
 
     # Use a set to store visited orders for duplicate checking
-    visited_orders = set(tuple(chromo.order) for chromo in population)
+    #visited_orders = set(tuple(chromo.order) for chromo in population)
 
     start_time = time.time()
 
@@ -45,15 +47,15 @@ def main():
         if population[0].dist < best_chromo.dist:
             best_chromo = population[0].duplicate()
             print("\n")
-            # Plot the current best path
-            plot_path(best_chromo, df_5k, f"Generation {i + 1} - Best Path")
+
+            #plot_path(best_chromo, df_5k, f"Generation {i + 1} - Best Path")
 
         print(math.floor(population[0].dist), " : ", i, " : ", math.floor(best_chromo.dist))
 
-        generate_norm_fitness(population)
+        #generate_norm_fitness(population)
 
-        create_next_generation_roulette(population, visited_orders)
-        mutate_generation(mutation_rate, population)
+        population = create_next_generation_tournament(population, tournament_size)
+        mutate_generation_swap(mutation_rate, population)
 
     end_time = time.time()
     print(time_convert(end_time - start_time, "Total Time"))
@@ -61,8 +63,7 @@ def main():
 
 def plot_path(chromo, df_5k, title):
     order = chromo.order
-    coords = np.array([get_coords(index, df_5k) for index in order])
-    #coords = np.append(coords, get_coords(order[0], df_5k), axis=1)
+    coords = np.array([get_coords(index, df_5k) for index in order]) 
     plt.figure()
     plt.plot(coords[:, 0], coords[:, 1], marker='o', linestyle='-')
     plt.title(title)
@@ -70,34 +71,35 @@ def plot_path(chromo, df_5k, title):
     plt.ylabel("Y Coordinate")
     plt.show()
 
-def create_next_generation_roulette(population, visited_orders):
+def create_next_generation_tournament(population, tournament_size):
     new_population = np.empty(len(population), dtype=Chromosome)
 
     for i in range(len(population)):
-        chromo_select = random.uniform(0, 1)
-        index = -1
+        tournament_indices = np.random.choice(len(population), size=tournament_size, replace=False)
+        tournament = [population[idx] for idx in tournament_indices]
+        winner = max(tournament, key=lambda x: x.fitness)
+        new_population[i] = winner.duplicate()
 
-        while chromo_select > 0:
-            index += 1
-            chromo_select -= population[index].norm_fitness
+    return new_population
 
-        order_tuple = tuple(population[index].order)
-        if order_tuple not in visited_orders:
-            new_population[i] = population[index].duplicate()
-            visited_orders.add(order_tuple)
 
-    population = new_population
-
-def mutate_generation(mutation_rate, population):
+def mutate_generation_swap(mutation_rate, population):
     for chromo in population:
         if (random.uniform(0, 1) < mutation_rate):
             reps = random.randrange(5)
             for j in range(0, reps):
-                x = random.randrange(len(chromo.order)-1)
+                while True:
+                    x = random.randrange(len(chromo.order)-1)
+                    y = random.randrange(len(chromo.order)-1)
+                    if (x != y):
+                        break
 
                 temp = chromo.order[x]
-                chromo.order[x] = chromo.order[x+1]
-                chromo.order[x+1] = temp
+                chromo.order[x] = chromo.order[y]
+                chromo.order[y] = temp
+
+def crossover(parent1, parent2):
+    pass
 
 
 def init_population(population_size, city_num):
