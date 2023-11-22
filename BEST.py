@@ -16,11 +16,11 @@ class Chromosome:
         return Chromosome(self.order.copy(), self.dist, self.fitness, self.norm_fitness)
 
 def main():
-    city_num = 50
-    pop_size = 100
+    city_num = 10
+    pop_size = 50
     generations = 1000
-    tournament_size = 30
-    mutation_rate = 0.6
+    tournament_size = 20
+    mutation_rate = 0.3
     cross_rate = 0.4
     best_chromo = Chromosome([0], 20000000, float('inf'), float('inf'))
 
@@ -54,8 +54,8 @@ def main():
 
         #generate_norm_fitness(population)
 
-        population = create_next_generation_tournament(population, tournament_size)
-        mutate_generation_swap(mutation_rate, population)
+        population = create_next_generation_tournament_cross(population, tournament_size)
+        mutate_generation(mutation_rate, population)
 
     end_time = time.time()
     print(time_convert(end_time - start_time, "Total Time"))
@@ -82,11 +82,28 @@ def create_next_generation_tournament(population, tournament_size):
 
     return new_population
 
+def create_next_generation_tournament_cross(population, tournament_size):
+    new_population = np.empty(len(population), dtype=Chromosome)
 
-def mutate_generation_swap(mutation_rate, population):
+    for i in range(len(population)):
+        tournament_indices = np.random.choice(len(population), size=tournament_size, replace=False)
+        tournament = [population[idx] for idx in tournament_indices]
+        parent = max(tournament, key=lambda x: x.fitness)
+        parent_a = parent.duplicate()
+
+        tournament_indices = np.random.choice(len(population), size=tournament_size, replace=False)
+        tournament = [population[idx] for idx in tournament_indices]
+        parent = max(tournament, key=lambda x: x.fitness)
+        parent_b = parent.duplicate()
+
+        new_population[i] = crossover(parent_a, parent_b)
+
+    return new_population
+
+def mutate_generation(mutation_rate, population):
     for chromo in population:
         if (random.uniform(0, 1) < mutation_rate):
-            reps = random.randrange(5)
+            reps = 10
             for j in range(0, reps):
                 while True:
                     x = random.randrange(len(chromo.order)-1)
@@ -98,9 +115,18 @@ def mutate_generation_swap(mutation_rate, population):
                 chromo.order[x] = chromo.order[y]
                 chromo.order[y] = temp
 
-def crossover(parent1, parent2):
-    pass
+def crossover(parent_a, parent_b):
+    order_a = parent_a.order
+    order_b = parent_b.order
 
+    crossover_point = random.randint(0, len(order_a)-1)
+    new_order = order_a[:crossover_point]
+
+    for city in order_b:
+        if np.isin(city, new_order, invert=True):
+            new_order = np.append(new_order, city)
+
+    return Chromosome(new_order, float('inf'), float('inf'), float('inf'))
 
 def init_population(population_size, city_num):
     population = np.empty(population_size, dtype=Chromosome)
