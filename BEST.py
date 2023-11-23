@@ -16,13 +16,16 @@ class Chromosome:
         return Chromosome(self.order.copy(), self.dist, self.fitness, self.norm_fitness)
 
 def main():
-    city_num = 10
-    pop_size = 50
-    generations = 1000
-    tournament_size = 20
-    mutation_rate = 0.3
+    city_num = 5000
+    pop_size = 150
+    generations = 25000
+    tournament_size = 50
+    mutation_rate = 0.6
     cross_rate = 0.4
     best_chromo = Chromosome([0], 20000000, float('inf'), float('inf'))
+
+    global matrix
+    matrix = np.zeros((city_num, city_num))
 
     df = pd.read_csv("cities.csv")
     df_5k = df.iloc[:city_num]
@@ -54,7 +57,7 @@ def main():
 
         #generate_norm_fitness(population)
 
-        population = create_next_generation_tournament_cross(population, tournament_size)
+        population = create_next_generation_tournament(population, tournament_size)
         mutate_generation(mutation_rate, population)
 
     end_time = time.time()
@@ -97,13 +100,14 @@ def create_next_generation_tournament_cross(population, tournament_size):
         parent_b = parent.duplicate()
 
         new_population[i] = crossover(parent_a, parent_b)
+        #print(new_population[i].order)
 
     return new_population
 
 def mutate_generation(mutation_rate, population):
     for chromo in population:
         if (random.uniform(0, 1) < mutation_rate):
-            reps = 10
+            reps = 12
             for j in range(0, reps):
                 while True:
                     x = random.randrange(len(chromo.order)-1)
@@ -125,6 +129,8 @@ def crossover(parent_a, parent_b):
     for city in order_b:
         if np.isin(city, new_order, invert=True):
             new_order = np.append(new_order, city)
+            if (len(new_order) == len (order_a)):
+                break
 
     return Chromosome(new_order, float('inf'), float('inf'), float('inf'))
 
@@ -155,9 +161,18 @@ def get_coords(index, df_5k):
     return ([df_5k.loc[index, "X"], df_5k.loc[index, "Y"]])
 
 def euclid_dist(a, b, df_5k):
-    A = get_coords(a, df_5k)
-    B = get_coords(b, df_5k)
-    return math.sqrt((A[0] - B[0])**2 + (A[1] - B[1])**2)
+
+    if (matrix[a][b] == 0 and matrix[b][a] == 0):
+
+        A = get_coords(a, df_5k)
+        B = get_coords(b, df_5k)
+        dist = math.sqrt((A[0] - B[0])**2 + (A[1] - B[1])**2)
+        matrix[a][b] = dist
+        matrix[b][a] = dist
+        return dist
+    else:
+        return matrix[a][b]
+
 
 def time_convert(sec, message):
   mins = sec // 60
