@@ -6,23 +6,22 @@ import time
 import matplotlib.pyplot as plt
 
 class Chromosome:
-    def __init__(self, order, dist, fitness, norm_fitness):
+    def __init__(self, order, dist, fitness):
         self.order = order
         self.dist = dist
         self.fitness = fitness
-        self.norm_fitness = norm_fitness
 
     def duplicate(self):
-        return Chromosome(self.order.copy(), self.dist, self.fitness, self.norm_fitness)
+        return Chromosome(self.order.copy(), self.dist, self.fitness)
 
 def main():
     city_num = 5000
-    pop_size = 150
-    generations = 25000
+    pop_size = 200
+    generations = 1500
     tournament_size = 50
-    mutation_rate = 0.6
-    cross_rate = 0.4
-    best_chromo = Chromosome([0], 20000000, float('inf'), float('inf'))
+    mutation_rate = 0.4
+    mutation_reps = 4
+    best_chromo = Chromosome([None], 20000000, float('inf'))
 
     global matrix
     matrix = np.zeros((city_num, city_num))
@@ -31,11 +30,11 @@ def main():
     df_5k = df.iloc[:city_num]
     population = init_population(pop_size, city_num)
 
-    # Use a set to store visited orders for duplicate checking
-    #visited_orders = set(tuple(chromo.order) for chromo in population)
-
     start_time = time.time()
 
+    #i = -1
+    #while best_chromo.dist > 5000000:
+    #    i += 1
     for i in range(generations):
         start_fit = time.time()
 
@@ -44,70 +43,65 @@ def main():
 
         #time_convert(time.time() - start_fit, "Fitness")
 
-        sorted_indices = np.argsort([chromo.dist for chromo in population])[::1]
-        population = population[sorted_indices]
+        best_chromo_gen = max(population, key=lambda x: x.fitness)
 
-        if population[0].dist < best_chromo.dist:
-            best_chromo = population[0].duplicate()
-            print("\n")
+        if best_chromo_gen.dist < best_chromo.dist:
+            print("##", math.floor(best_chromo.dist - best_chromo_gen.dist))
+            best_chromo = best_chromo_gen.duplicate()
 
-            #plot_path(best_chromo, df_5k, f"Generation {i + 1} - Best Path")
 
-        print(math.floor(population[0].dist), " : ", i, " : ", math.floor(best_chromo.dist))
+        print(i, " : ", math.floor(best_chromo.dist))
 
-        #generate_norm_fitness(population)
-
-        population = create_next_generation_tournament(population, tournament_size)
-        mutate_generation(mutation_rate, population)
+        population = crossover_generation(population, tournament_size)
+        mutate_generation(mutation_rate, population, mutation_reps)
 
     end_time = time.time()
-    print(time_convert(end_time - start_time, "Total Time"))
+    print(time_convert(end_time - start_time, "Total Time"), "Best Score: ", best_chromo.dist)
     plot_path(best_chromo, df_5k, "Best Found Path")
+
+    #FUNCTIONS
 
 def plot_path(chromo, df_5k, title):
     order = chromo.order
     coords = np.array([get_coords(index, df_5k) for index in order]) 
     plt.figure()
     plt.plot(coords[:, 0], coords[:, 1], marker='o', linestyle='-')
+    title = title, chromo.dist
     plt.title(title)
     plt.xlabel("X Coordinate")
     plt.ylabel("Y Coordinate")
     plt.show()
 
-def create_next_generation_tournament(population, tournament_size):
+# def create_next_generation_tournament(population, tournament_size):
+#     new_population = np.empty(len(population), dtype=Chromosome)
+
+#     for i in range(len(population)):
+#         tournament_indices = np.random.choice(len(population), size=tournament_size, replace=False)
+#         tournament = [population[idx] for idx in tournament_indices]
+#         winner = max(tournament, key=lambda x: x.fitness)
+#         new_population[i] = winner.duplicate()
+
+#     return new_population
+
+def crossover_generation(population, tournament_size):
     new_population = np.empty(len(population), dtype=Chromosome)
 
     for i in range(len(population)):
-        tournament_indices = np.random.choice(len(population), size=tournament_size, replace=False)
-        tournament = [population[idx] for idx in tournament_indices]
-        winner = max(tournament, key=lambda x: x.fitness)
-        new_population[i] = winner.duplicate()
-
-    return new_population
-
-def create_next_generation_tournament_cross(population, tournament_size):
-    new_population = np.empty(len(population), dtype=Chromosome)
-
-    for i in range(len(population)):
-        tournament_indices = np.random.choice(len(population), size=tournament_size, replace=False)
-        tournament = [population[idx] for idx in tournament_indices]
-        parent = max(tournament, key=lambda x: x.fitness)
-        parent_a = parent.duplicate()
-
-        tournament_indices = np.random.choice(len(population), size=tournament_size, replace=False)
-        tournament = [population[idx] for idx in tournament_indices]
-        parent = max(tournament, key=lambda x: x.fitness)
-        parent_b = parent.duplicate()
-
+        parent_a = select_parent(population, tournament_size)
+        parent_b = select_parent(population, tournament_size)
         new_population[i] = crossover(parent_a, parent_b)
-        #print(new_population[i].order)
 
     return new_population
 
-def mutate_generation(mutation_rate, population):
+def select_parent(population, tournament_size):
+    tournament_indices = np.random.choice(len(population), size=tournament_size, replace=False)
+    tournament = [population[idx] for idx in tournament_indices]
+    parent = max(tournament, key=lambda x: x.fitness)
+    return parent.duplicate()
+
+def mutate_generation(mutation_rate, population, reps):
     for chromo in population:
         if (random.uniform(0, 1) < mutation_rate):
-            reps = 12
             for j in range(0, reps):
                 while True:
                     x = random.randrange(len(chromo.order)-1)
@@ -124,22 +118,17 @@ def crossover(parent_a, parent_b):
     order_b = parent_b.order
 
     crossover_point = random.randint(0, len(order_a)-1)
-    new_order = order_a[:crossover_point]
+    cities_to_add = np.setdiff1d(order_b, order_a[:crossover_point], assume_unique=True)
+    new_order = np.concatenate((order_a[:crossover_point], cities_to_add))
 
-    for city in order_b:
-        if np.isin(city, new_order, invert=True):
-            new_order = np.append(new_order, city)
-            if (len(new_order) == len (order_a)):
-                break
-
-    return Chromosome(new_order, float('inf'), float('inf'), float('inf'))
+    return Chromosome(new_order, float('inf'), float('inf'))
 
 def init_population(population_size, city_num):
     population = np.empty(population_size, dtype=Chromosome)
     for i in range(0, population_size):
         order = np.arange(0, city_num)
         random.shuffle(order)
-        chromo = Chromosome(order, float('inf'), float('inf'), 0)
+        chromo = Chromosome(order, float('inf'), float('inf'))
         population[i] = chromo
     return population
 
@@ -149,13 +138,6 @@ def fitness_func(chromo, df_5k):
         cumulative_dist += euclid_dist(chromo.order[i], chromo.order[i+1], df_5k)
     chromo.dist = cumulative_dist
     chromo.fitness = (1 / cumulative_dist)
-
-def generate_norm_fitness(population):
-    total = 0
-    for i in range(0, len(population)):
-        total = total + population[i].fitness
-    for i in range(0, len(population)):
-        population[i].norm_fitness = population[i].fitness / total
 
 def get_coords(index, df_5k):
     return ([df_5k.loc[index, "X"], df_5k.loc[index, "Y"]])
