@@ -4,6 +4,7 @@ import random
 import math
 import time
 import matplotlib.pyplot as plt
+import multiprocessing
 
 class Chromosome:
     def __init__(self, order, dist, fitness):
@@ -17,10 +18,10 @@ class Chromosome:
 def main():
     city_num = 5000
     pop_size = 150
-    generations = 25000
-    tournament_size = 5
-    mutation_rate = 0.6
-    mutation_reps = 50
+    generations = 100
+    tournament_size = 30
+    mutation_rate = 0.4
+    mutation_reps = 4
     best_chromo = Chromosome(np.arange(city_num), 20000000, float('inf'))
 
     matrix = np.zeros((city_num, city_num))
@@ -31,36 +32,46 @@ def main():
 
     start_time = time.time()
 
-    i = -1
-    while (best_chromo.dist > 4000000):
-        i+=1
-    #for i in range(generations):
-        start_fit = time.time()
+    try:
+
+        pool = multiprocessing.Pool(processes=1)
+
+        for i in range(generations):
+            start_fit = time.time()
+
+            population = pool.map(evaluate_fitness, [(chromo, df_5k, matrix) for chromo in population])
+
+            #for chromo in population:
+            #    fitness_func(chromo, df_5k, matrix)
+
+            time_convert(time.time() - start_fit, "Fitness")
+
+            best_chromo_gen = max(population, key=lambda x: x.fitness)
+
+            if best_chromo_gen.dist < best_chromo.dist:
+                print("##", math.floor(best_chromo.dist - best_chromo_gen.dist))
+                best_chromo = best_chromo_gen.duplicate()
 
 
-        for chromo in population:
-            fitness_func(chromo, df_5k, matrix)
+            print(i, " : ", math.floor(best_chromo.dist))
 
-        #time_convert(time.time() - start_fit, "Fitness")
+            population = crossover_generation(population, tournament_size)
+            mutate_generation(mutation_rate, population, mutation_reps)
+    finally:
 
-        best_chromo_gen = max(population, key=lambda x: x.fitness)
-
-        if best_chromo_gen.dist < best_chromo.dist:
-            print("##", math.floor(best_chromo.dist - best_chromo_gen.dist))
-            best_chromo = best_chromo_gen.duplicate()
-
-
-        print(i, " : ", math.floor(best_chromo.dist))
-
-        population = crossover_generation(population, tournament_size)
-        mutate_generation(mutation_rate, population, mutation_reps)
-
+        pool.close()
+        pool.join()
 
     end_time = time.time()
     print(time_convert(end_time - start_time, "Total Time"), "Best Score: ", best_chromo.dist)
     plot_path(best_chromo, df_5k, "Best Found Path")
 
     #FUNCTIONS
+
+def evaluate_fitness(args):
+    chromo, df_5k, matrix = args
+    fitness_func(chromo, df_5k, matrix)
+    return chromo
 
 def plot_path(chromo, df_5k, title):
     order = chromo.order
@@ -72,6 +83,17 @@ def plot_path(chromo, df_5k, title):
     plt.xlabel("X Coordinate")
     plt.ylabel("Y Coordinate")
     plt.show()
+
+# def create_next_generation_tournament(population, tournament_size):
+#     new_population = np.empty(len(population), dtype=Chromosome)
+
+#     for i in range(len(population)):
+#         tournament_indices = np.random.choice(len(population), size=tournament_size, replace=False)
+#         tournament = [population[idx] for idx in tournament_indices]
+#         winner = max(tournament, key=lambda x: x.fitness)
+#         new_population[i] = winner.duplicate()
+
+#     return new_population
 
 def crossover_generation(population, tournament_size):
     new_population = np.empty(len(population), dtype=Chromosome)
@@ -123,6 +145,10 @@ def init_population(population_size, city_num):
     return population
 
 def fitness_func(chromo, df_5k, matrix):
+
+    if chromo is None or chromo.order is None:
+        return
+
     cumulative_dist = euclid_dist(chromo.order[len(chromo.order)-1], chromo.order[0], df_5k, matrix)
     for i in range(0, len(chromo.order) -1):
         cumulative_dist += euclid_dist(chromo.order[i], chromo.order[i+1], df_5k, matrix)
@@ -133,6 +159,7 @@ def get_coords(index, df_5k):
     return ([df_5k.loc[index, "X"], df_5k.loc[index, "Y"]])
 
 def euclid_dist(a, b, df_5k, matrix):
+
     if (matrix[a][b] == 0 and matrix[b][a] == 0):
 
         A = get_coords(a, df_5k)
