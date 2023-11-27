@@ -16,8 +16,8 @@ class Chromosome:
 
 def main():
     city_num = 5000
-    pop_size = 150
-    generations = 25000
+    pop_size = 200
+    generations = 1000
     tournament_size = 5
     mutation_rate = 0.6
     mutation_reps = 50
@@ -32,7 +32,7 @@ def main():
     start_time = time.time()
 
     i = -1
-    while (best_chromo.dist > 4000000):
+    while (best_chromo.dist > 3000000):
         i+=1
     #for i in range(generations):
         start_fit = time.time()
@@ -40,8 +40,6 @@ def main():
 
         for chromo in population:
             fitness_func(chromo, df_5k, matrix)
-
-        #time_convert(time.time() - start_fit, "Fitness")
 
         best_chromo_gen = max(population, key=lambda x: x.fitness)
 
@@ -55,6 +53,8 @@ def main():
         population = crossover_generation(population, tournament_size)
         mutate_generation(mutation_rate, population, mutation_reps)
 
+        #time_convert(time.time() - start_fit, "Generation")
+
 
     end_time = time.time()
     print(time_convert(end_time - start_time, "Total Time"), "Best Score: ", best_chromo.dist)
@@ -64,7 +64,7 @@ def main():
 
 def plot_path(chromo, df_5k, title):
     order = chromo.order
-    coords = np.array([get_coords(index, df_5k) for index in order]) 
+    coords = np.array([get_coords(index, df_5k) for index in order])
     plt.figure()
     plt.plot(coords[:, 0], coords[:, 1], marker='o', linestyle='-')
     title = title, chromo.dist
@@ -80,7 +80,6 @@ def crossover_generation(population, tournament_size):
         parent_a = select_parent(population, tournament_size)
         parent_b = select_parent(population, tournament_size)
         new_population[i] = crossover(parent_a, parent_b)
-
     return new_population
 
 def select_parent(population, tournament_size):
@@ -93,15 +92,10 @@ def mutate_generation(mutation_rate, population, reps):
     for chromo in population:
         if (random.uniform(0, 1) < mutation_rate):
             for j in range(0, reps):
-                while True:
-                    x = random.randrange(len(chromo.order)-1)
-                    y = random.randrange(len(chromo.order)-1)
-                    if (x != y):
-                        break
+                x, y = np.random.choice(len(chromo.order), size=2, replace=False)
+                chromo.order[x], chromo.order[y] = chromo.order[y], chromo.order[x]
 
-                temp = chromo.order[x]
-                chromo.order[x] = chromo.order[y]
-                chromo.order[y] = temp
+
 
 def crossover(parent_a, parent_b):
     order_a = parent_a.order
