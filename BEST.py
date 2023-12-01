@@ -16,14 +16,16 @@ class Chromosome:
 
 def main():
     city_num = 5000
-    pop_size = 200
+    pop_size = 250
     generations = 1000
-    tournament_size = 5
-    mutation_rate = 0.6
-    mutation_reps = 50
+    tournament_size = 10
+    mutation_rate = .2
+    mutation_reps = 2
     best_chromo = Chromosome(np.arange(city_num), 20000000, float('inf'))
 
     matrix = np.zeros((city_num, city_num))
+
+    target = 10500000
 
     df = pd.read_csv("cities.csv")
     df_5k = df.iloc[:city_num]
@@ -32,7 +34,7 @@ def main():
     start_time = time.time()
 
     i = -1
-    while (best_chromo.dist > 3000000):
+    while (best_chromo.dist >= 1000000): 
         i+=1
     #for i in range(generations):
         start_fit = time.time()
@@ -44,11 +46,15 @@ def main():
         best_chromo_gen = max(population, key=lambda x: x.fitness)
 
         if best_chromo_gen.dist < best_chromo.dist:
-            print("##", math.floor(best_chromo.dist - best_chromo_gen.dist))
+            print("######################################################", math.floor(best_chromo.dist - best_chromo_gen.dist))
             best_chromo = best_chromo_gen.duplicate()
 
+            if best_chromo.dist < target:
+                time_convert(time.time() - start_time, str(target))
+                target -= 100000
 
         print(i, " : ", math.floor(best_chromo.dist))
+        #time_convert(time.time() - start_fit, "")
 
         population = crossover_generation(population, tournament_size)
         mutate_generation(mutation_rate, population, mutation_reps)
@@ -137,7 +143,6 @@ def euclid_dist(a, b, df_5k, matrix):
         return dist
     else:
         return matrix[a][b]
-
 
 def time_convert(sec, message):
   mins = sec // 60
