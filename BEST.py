@@ -16,10 +16,10 @@ class Chromosome:
 
 def main():
     city_num = 5000
-    pop_size = 250
+    pop_size = 400
     generations = 1000
-    tournament_size = 10
-    mutation_rate = .2
+    tournament_size = 15
+    mutation_rate = .1
     mutation_reps = 2
     best_chromo = Chromosome(np.arange(city_num), 20000000, float('inf'))
 
@@ -34,7 +34,7 @@ def main():
     start_time = time.time()
 
     i = -1
-    while (best_chromo.dist >= 1000000): 
+    while (best_chromo.dist >= 2500000): 
         i+=1
     #for i in range(generations):
         start_fit = time.time()
@@ -99,7 +99,8 @@ def mutate_generation(mutation_rate, population, reps):
         if (random.uniform(0, 1) < mutation_rate):
             for j in range(0, reps):
                 x, y = np.random.choice(len(chromo.order), size=2, replace=False)
-                chromo.order[x], chromo.order[y] = chromo.order[y], chromo.order[x]
+                #chromo.order[x], chromo.order[y] = chromo.order[y], chromo.order[x]
+                chromo.order = np.insert(np.delete(chromo.order, x), y, chromo.order[x])
 
 
 
