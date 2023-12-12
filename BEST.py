@@ -16,16 +16,16 @@ class Chromosome:
 
 def main():
     city_num = 5000
-    pop_size = 400
+    pop_size = 300
     generations = 1000
-    tournament_size = 15
-    mutation_rate = .1
-    mutation_reps = 2
-    best_chromo = Chromosome(np.arange(city_num), 20000000, float('inf'))
+    tournament_size = 10
+    mutation_rate = 0.1
+    mutation_reps = 1
+    best_chromo = Chromosome(np.arange(city_num), 12000000, float('inf'))
 
     matrix = np.zeros((city_num, city_num))
 
-    target = 10500000
+    target = 10800000
 
     df = pd.read_csv("cities.csv")
     df_5k = df.iloc[:city_num]
@@ -34,7 +34,7 @@ def main():
     start_time = time.time()
 
     i = -1
-    while (best_chromo.dist >= 2500000): 
+    while (best_chromo.dist >= 3000000): 
         i+=1
     #for i in range(generations):
         start_fit = time.time()
@@ -46,7 +46,7 @@ def main():
         best_chromo_gen = max(population, key=lambda x: x.fitness)
 
         if best_chromo_gen.dist < best_chromo.dist:
-            print("######################################################", math.floor(best_chromo.dist - best_chromo_gen.dist))
+            print("######################################################", best_chromo.dist - best_chromo_gen.dist)
             best_chromo = best_chromo_gen.duplicate()
 
             if best_chromo.dist < target:
@@ -54,20 +54,22 @@ def main():
                 target -= 100000
 
         print(i, " : ", math.floor(best_chromo.dist))
-        #time_convert(time.time() - start_fit, "")
 
         population = crossover_generation(population, tournament_size)
         mutate_generation(mutation_rate, population, mutation_reps)
 
-        #time_convert(time.time() - start_fit, "Generation")
 
-
-    end_time = time.time()
-    print(time_convert(end_time - start_time, "Total Time"), "Best Score: ", best_chromo.dist)
+    print(time_convert(time.time() - start_time, "Total Time"), "Best Score: ", best_chromo.dist)
     plot_path(best_chromo, df_5k, "Best Found Path")
+
+
+
+
+
 
     #FUNCTIONS
 
+#Displayes the end result of the best chromosome
 def plot_path(chromo, df_5k, title):
     order = chromo.order
     coords = np.array([get_coords(index, df_5k) for index in order])
@@ -79,6 +81,7 @@ def plot_path(chromo, df_5k, title):
     plt.ylabel("Y Coordinate")
     plt.show()
 
+#Collates the new generation of mutated chromosomes
 def crossover_generation(population, tournament_size):
     new_population = np.empty(len(population), dtype=Chromosome)
 
@@ -88,22 +91,22 @@ def crossover_generation(population, tournament_size):
         new_population[i] = crossover(parent_a, parent_b)
     return new_population
 
+#Selects 2 random parents using tournament selection
 def select_parent(population, tournament_size):
     tournament_indices = np.random.choice(len(population), size=tournament_size, replace=False)
     tournament = [population[idx] for idx in tournament_indices]
     parent = max(tournament, key=lambda x: x.fitness)
     return parent.duplicate()
 
+#insertion mutation of the population based on the mutation rate and repetitions
 def mutate_generation(mutation_rate, population, reps):
     for chromo in population:
         if (random.uniform(0, 1) < mutation_rate):
             for j in range(0, reps):
                 x, y = np.random.choice(len(chromo.order), size=2, replace=False)
-                #chromo.order[x], chromo.order[y] = chromo.order[y], chromo.order[x]
                 chromo.order = np.insert(np.delete(chromo.order, x), y, chromo.order[x])
 
-
-
+#creates a single chromosome based on the characteristics of the 2 inputted
 def crossover(parent_a, parent_b):
     order_a = parent_a.order
     order_b = parent_b.order
@@ -114,6 +117,7 @@ def crossover(parent_a, parent_b):
 
     return Chromosome(new_order, float('inf'), float('inf'))
 
+#Creates the array of chromosome objects
 def init_population(population_size, city_num):
     population = np.empty(population_size, dtype=Chromosome)
     for i in range(0, population_size):
@@ -123,6 +127,7 @@ def init_population(population_size, city_num):
         population[i] = chromo
     return population
 
+#Assigns a fitness to a chromosome negatively correlated to the path's distance
 def fitness_func(chromo, df_5k, matrix):
     cumulative_dist = euclid_dist(chromo.order[len(chromo.order)-1], chromo.order[0], df_5k, matrix)
     for i in range(0, len(chromo.order) -1):
@@ -130,9 +135,11 @@ def fitness_func(chromo, df_5k, matrix):
     chromo.dist = cumulative_dist
     chromo.fitness = (1 / cumulative_dist)
 
+#returns the coordinates of the city by index
 def get_coords(index, df_5k):
     return ([df_5k.loc[index, "X"], df_5k.loc[index, "Y"]])
 
+#Return the distance between 2 cities
 def euclid_dist(a, b, df_5k, matrix):
     if (matrix[a][b] == 0 and matrix[b][a] == 0):
 
@@ -145,12 +152,14 @@ def euclid_dist(a, b, df_5k, matrix):
     else:
         return matrix[a][b]
 
+#Prints text describing the delta time
 def time_convert(sec, message):
   mins = sec // 60
   sec = sec % 60
   hours = mins // 60
   mins = mins % 60
   print(message, "= {0}:{1}:{2}".format(int(hours),int(mins),sec))
+
 
 if __name__ == "__main__":
     main()
