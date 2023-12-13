@@ -37,8 +37,6 @@ def main():
     while (best_chromo.dist >= 3000000): 
         i+=1
     #for i in range(generations):
-        start_fit = time.time()
-
 
         for chromo in population:
             fitness_func(chromo, df_5k, matrix)
